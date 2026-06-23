@@ -2,12 +2,18 @@
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>教學戰術側邊欄 V3</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f1115">
+    
+    <title>教學戰術側邊欄 V3.1</title>
     <style>
-        /* [核心渲染] */
+        /* [底層渲染修復] 強制消滅 iOS 預設的白色底圖 */
+        html { background-color: #0f1115; height: 100%; width: 100%; }
+        
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: system-ui, -apple-system, sans-serif; background-color: #0f1115; color: #e0e0e0; display: flex; flex-direction: column; height: 100vh; overflow-y: auto; overflow-x: hidden; padding: 12px; transition: padding 0.3s; }
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #0f1115; color: #e0e0e0; display: flex; flex-direction: column; min-height: 100vh; overflow-y: auto; overflow-x: hidden; padding: 12px; transition: padding 0.3s; overscroll-behavior-y: none; }
         
         /* [頂部導航] */
         .nav-bar { display: flex; gap: 8px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #2a2d35; transition: all 0.3s; }
@@ -22,7 +28,7 @@
         .widget.rng { border-top-color: #2196F3; }
         h3 { margin-bottom: 14px; font-size: 0.85rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s;}
         
-        /* [表單控制：與執行按鈕分離] */
+        /* [表單控制] */
         .setting-group { display: flex; gap: 8px; margin-bottom: 12px; transition: all 0.3s; overflow: hidden; }
         .action-group { display: flex; gap: 8px; margin-top: 10px; }
         
@@ -51,8 +57,8 @@
         body.compact-mode .widget { padding: 8px; margin-bottom: 0; }
         body.compact-mode { padding: 4px; background: transparent; }
         
-        /* 懸浮控制開關 */
-        .compact-toggle { position: fixed; bottom: 20px; right: 20px; width: 45px; height: 45px; background: #333; border: 2px solid #555; border-radius: 50%; color: white; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 1000; opacity: 0.6; transition: all 0.2s; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+        /* 懸浮控制開關 (固定於視窗右下角) */
+        .compact-toggle { position: fixed; bottom: 20px; right: 20px; width: 45px; height: 45px; background: #1a1d24; border: 2px solid #4CAF50; border-radius: 50%; color: white; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 1000; opacity: 0.7; transition: all 0.2s; box-shadow: 0 4px 8px rgba(0,0,0,0.8); }
         .compact-toggle:active { opacity: 1; transform: scale(0.9); }
     </style>
 </head>
@@ -81,13 +87,11 @@
             <select id="minSelect"></select>
             <select id="secSelect"></select>
         </div>
-        
         <div class="display-screen" id="timerDisplayNumber">00:00</div>
         <div class="energy-bar-container" id="timerDisplayBar">
             <div class="energy-bar-fill" id="energyBarFill"></div>
             <div class="energy-bar-text" id="energyBarText">00:00</div>
         </div>
-
         <div class="action-group">
             <button class="action-btn primary timer" onclick="SystemLogic.startTimer()" id="timerBtn">啟動</button>
             <button class="action-btn" onclick="SystemLogic.stopTimer()">暫停</button>
@@ -101,9 +105,7 @@
             <span style="align-self:center; color:#555;">-</span>
             <select id="maxRangeSelect" title="結束號碼"></select>
         </div>
-        
         <div class="display-screen rng-mode" id="randomResult">--</div>
-        
         <div class="action-group">
             <button class="action-btn primary rng" onclick="SystemLogic.drawNumber()">鎖定目標</button>
         </div>
@@ -127,19 +129,17 @@
                 const rngMin = document.getElementById('minRangeSelect');
                 const rngMax = document.getElementById('maxRangeSelect');
                 
-                // 構建時間選單 0-60
                 for (let i = 0; i <= 60; i++) {
                     minSel.add(new Option(i + ' 分', i));
                     if(i < 60) secSel.add(new Option(i + ' 秒', i));
                 }
                 minSel.value = 1; secSel.value = 0;
 
-                // 構建點名選單 1-60 (預設班級最大人數)
                 for (let i = 1; i <= 60; i++) {
                     rngMin.add(new Option('起: ' + i + '號', i));
                     rngMax.add(new Option('迄: ' + i + '號', i));
                 }
-                rngMin.value = 1; rngMax.value = 30; // 預設 1-30 號
+                rngMin.value = 1; rngMax.value = 30;
             },
 
             toggleCompactMode: function() {
@@ -148,10 +148,12 @@
                 const btn = document.getElementById('compactBtn');
                 if (this.isCompact) {
                     body.classList.add('compact-mode');
-                    btn.textContent = '👁️'; // 睜眼圖示：代表點擊恢復檢視
+                    btn.textContent = '👁️'; 
+                    btn.style.borderColor = '#E040FB'; // 切換狀態顏色
                 } else {
                     body.classList.remove('compact-mode');
-                    btn.textContent = '🗜️'; // 壓縮圖示：代表點擊進入壓縮
+                    btn.textContent = '🗜️';
+                    btn.style.borderColor = '#4CAF50';
                 }
             },
 
